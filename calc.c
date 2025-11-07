@@ -15,21 +15,30 @@ typedef struct {
   char op;
 } CalcCommand;
 
-// Parse token into double, exit if it fails.
-double parse_num(char* token) {
-  char* endptr; // Needed for strtod error checking
-  double num = strtod(token, &endptr);
-
-  // endptr == tok (point to the same addr) when input is not a number
-  // *endtptr != '/0' (char referecned by endptr is str terminator) when input
-  // has trailing letters
-  if (endptr == token || *endptr != '\0') {
-    printf("%s", "User input is not a number");
-    exit(1);
+/*
+ * Advance pos past all whitespace.
+ *
+ * Always returns 0, even at end of string.
+ * An end of string should raise an error in another parsing function if
+ * applicable.
+ */
+int parse_whitespace(char** pos) {
+  while (**pos == ' ') {
+    (*pos)++;
   }
-
-  return num;
+  return 0;
 }
+
+/*
+ * Advance pos to the end of the double. Place the result into num_result.
+ *
+ * Returns nonzero if the input is not a valid double.
+ */
+int parse_double(char** pos, double* double_result) {
+  
+}
+
+int parse_operator(char** pos, char* operator_result) {}
 
 /*
  * Read user input, parse it, and place the resulting CalcCommand into cmd.
@@ -40,14 +49,20 @@ void read_calc_input(CalcCommand* cmd) {
   printf("%s", "calc > ");
 
   // Read user input into a 256 byte buffer
-  char input[256];
-  fgets(input, sizeof(input), stdin);
+  char expr[256];
+  fgets(expr, sizeof(expr), stdin);
+  char* pos = expr;
 
-  char* tok = strtok(input, " ");
+  // Here we use pointer-to-pointer to track our progress parsing expr.
+  // error is a return code, any nonzero value will cause error after parsing.
+  int error = 0;
 
-  cmd->left = parse_num(tok);
-  cmd->op = p; // TODO: Parse symbol?
-  cmd->right = parse_num(tok);
+  error |= parse_whitespace(&pos);
+  error |= parse_num(&pos, &cmd->left);
+  error |= parse_whitespace(&pos);
+  error |= parse_operator(&pos, &cmd->op);
+  error |= parse_whitespace(&pos);
+  error |= parse_num(&pos, &cmd->right);
 }
 
 int main(void) {
