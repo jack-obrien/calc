@@ -30,42 +30,72 @@ int parse_whitespace(char** pos) {
 }
 
 /*
- * Advance pos to the end of the double. Place the result into num_result.
+ * Advance pos to the end of the double. Place the result into double_result.
  *
  * Returns nonzero if the input is not a valid double.
  */
 int parse_double(char** pos, double* double_result) {
-  
+  char* endptr;
+  double parsed = strtod(*pos, &endptr);
+
+  // in case parsing fails, strtod will store string starting address in endptr
+  if (endptr == *pos) {
+    return 1;
+  }
+
+  *double_result = parsed;
+  *pos = endptr;
+  return 0;
 }
 
-int parse_operator(char** pos, char* operator_result) {}
+int parse_operator(char** pos, char* operator_result) {
+  if (**pos == '+' || **pos == '-') {
+    *operator_result = **pos;
+    (*pos)++;
+    return 0;
+  } else {
+    return 1;
+  }
+}
 
 /*
  * Read user input, parse it, and place the resulting CalcCommand into cmd.
- * CalcCommand* cmd: buffer to put result into.
- * size_t size: Allocated size of calc command.
+ * Return 0 in case of success, 1 in case of failure.
+ *
+ * Args:
+ *  CalcCommand* cmd: buffer to put result into.
  */
-void read_calc_input(CalcCommand* cmd) {
+int read_calc_input(CalcCommand* cmd) {
   printf("%s", "calc > ");
 
   // Read user input into a 256 byte buffer
   char expr[256];
   fgets(expr, sizeof(expr), stdin);
-  char* pos = expr;
 
   // Here we use pointer-to-pointer to track our progress parsing expr.
+  char* pos = expr;
+
   // error is a return code, any nonzero value will cause error after parsing.
   int error = 0;
 
   error |= parse_whitespace(&pos);
-  error |= parse_num(&pos, &cmd->left);
+  error |= parse_double(&pos, &cmd->left);
   error |= parse_whitespace(&pos);
   error |= parse_operator(&pos, &cmd->op);
   error |= parse_whitespace(&pos);
-  error |= parse_num(&pos, &cmd->right);
+  error |= parse_double(&pos, &cmd->right);
+
+  if (error) {
+    printf("Parsing error\n");
+    return 1;
+  }
+
+  return 0;
 }
 
 int main(void) {
   CalcCommand cmd;
-  read_calc_input(&cmd);
+  while (read_calc_input(&cmd)) {}
+
+  printf("Parsed value: %f %c %f\n", cmd.left, cmd.op, cmd.right);
 }
