@@ -49,7 +49,7 @@ int parse_double(char** pos, double* double_result) {
 }
 
 int parse_operator(char** pos, char* operator_result) {
-  if (**pos == '+' || **pos == '-') {
+  if (**pos == '+' || **pos == '-' || **pos == '*' || **pos == '/') {
     *operator_result = **pos;
     (*pos)++;
     return 0;
@@ -66,7 +66,6 @@ int parse_operator(char** pos, char* operator_result) {
  *  CalcCommand* cmd: buffer to put result into.
  */
 int read_calc_input(CalcCommand* cmd) {
-  printf("%s", "calc > ");
 
   // Read user input into a 256 byte buffer
   char expr[256];
@@ -93,9 +92,28 @@ int read_calc_input(CalcCommand* cmd) {
   return 0;
 }
 
-int main(void) {
-  CalcCommand cmd;
-  while (read_calc_input(&cmd)) {}
+double do_calc_command(CalcCommand cmd) {
+  if (cmd.op == '+') {
+    return cmd.left + cmd.right;
+  } else if (cmd.op == '-') {
+    return cmd.left - cmd.right;
+  } else if (cmd.op == '*') {
+    return cmd.left * cmd.right;
+  } else if (cmd.op == '/') {
+    return cmd.left / cmd.right;
+  } else {
+    return 0;
+  }
+}
 
-  printf("Parsed value: %f %c %f\n", cmd.left, cmd.op, cmd.right);
+int main(void) {
+  while (1) {
+    CalcCommand cmd;
+    do {
+      printf("%s", "calc > ");
+    } while (read_calc_input(&cmd));
+
+    double result = do_calc_command(cmd);
+    printf("%f\n", result);
+  }
 }
