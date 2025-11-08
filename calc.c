@@ -1,19 +1,20 @@
-#include <ctype.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 /*
- * Command for the calculator to do. Represents a two-place function with a
- * left arguemnt, right argument, and operation (e.g. +, -).
+ * Operation for the calculator to do. Recursive structure to capture precedence.
+ * Can hold either an operation and two children, or a double value.
+ *
  */
-typedef struct {
-  double left;
-  double right;
-  char op;
-} CalcCommand;
+typedef struct node {
+  struct node* left; // children must be NULL if leaf node
+  struct node* right;
+  char op;  // op must be NULL if leaf node
+  double value; // Always NULL unless leaf node
+} node;
+
 
 /*
  * Advance pos past all whitespace.
@@ -59,13 +60,13 @@ int parse_operator(char** pos, char* operator_result) {
 }
 
 /*
- * Read user input, parse it, and place the resulting CalcCommand into cmd.
+ * Read user input, parse it, and place the resulting node into cmd.
  * Return 0 in case of success, 1 in case of failure.
  *
  * Args:
- *  CalcCommand* cmd: buffer to put result into.
+ *  node* cmd: buffer to put result into.
  */
-int read_calc_input(CalcCommand* cmd) {
+int read_calc_input(node* cmd) {
 
   // Read user input into a 256 byte buffer
   char expr[256];
@@ -92,7 +93,7 @@ int read_calc_input(CalcCommand* cmd) {
   return 0;
 }
 
-double do_calc_command(CalcCommand cmd) {
+double do_calc_command(node cmd) {
   if (cmd.op == '+') {
     return cmd.left + cmd.right;
   } else if (cmd.op == '-') {
@@ -108,7 +109,7 @@ double do_calc_command(CalcCommand cmd) {
 
 int main(void) {
   while (1) {
-    CalcCommand cmd;
+    node cmd;
     do {
       printf("%s", "calc > ");
     } while (read_calc_input(&cmd));
