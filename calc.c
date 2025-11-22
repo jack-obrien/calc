@@ -4,17 +4,16 @@
 #include <stdlib.h>
 
 /*
- * Operation for the calculator to do. Recursive structure to capture precedence.
- * Can hold either an operation and two children, or a double value.
+ * Operation for the calculator to do. Recursive structure to capture
+ * precedence. Can hold either an operation and two children, or a double value.
  *
  */
 typedef struct node {
   struct node* left; // children must be NULL if leaf node
   struct node* right;
-  char op;  // op must be NULL if leaf node
-  double value; // Always NULL unless leaf node
+  char op;      // op value only meaningful if not leaf node
+  double value; // value only meaningful if leaf node
 } node;
-
 
 /*
  * Advance pos past all whitespace.
@@ -66,7 +65,7 @@ int parse_operator(char** pos, char* operator_result) {
  * Args:
  *  node* cmd: buffer to put result into.
  */
-int read_calc_input(node* cmd) {
+int read_calc_input(node* root) {
 
   // Read user input into a 256 byte buffer
   char expr[256];
@@ -79,11 +78,11 @@ int read_calc_input(node* cmd) {
   int error = 0;
 
   error |= parse_whitespace(&pos);
-  error |= parse_double(&pos, &cmd->left);
+  error |= parse_double(&pos, &root->left->value);
   error |= parse_whitespace(&pos);
-  error |= parse_operator(&pos, &cmd->op);
+  error |= parse_operator(&pos, &root->op);
   error |= parse_whitespace(&pos);
-  error |= parse_double(&pos, &cmd->right);
+  error |= parse_double(&pos, &root->right->value);
 
   if (error) {
     printf("Parsing error\n");
@@ -95,13 +94,13 @@ int read_calc_input(node* cmd) {
 
 double do_calc_command(node cmd) {
   if (cmd.op == '+') {
-    return cmd.left + cmd.right;
+    return cmd.left->value + cmd.right->value;
   } else if (cmd.op == '-') {
-    return cmd.left - cmd.right;
+    return cmd.left->value - cmd.right->value;
   } else if (cmd.op == '*') {
-    return cmd.left * cmd.right;
+    return cmd.left->value * cmd.right->value;
   } else if (cmd.op == '/') {
-    return cmd.left / cmd.right;
+    return cmd.left->value / cmd.right->value;
   } else {
     return 0;
   }
@@ -109,12 +108,14 @@ double do_calc_command(node cmd) {
 
 int main(void) {
   while (1) {
-    node cmd;
+    node left = {0};
+    node right = {0};
+    node root = {.left = &left, .right = &right};
     do {
       printf("%s", "calc > ");
-    } while (read_calc_input(&cmd));
+    } while (read_calc_input(&root));
 
-    double result = do_calc_command(cmd);
+    double result = do_calc_command(root);
     printf("%f\n", result);
   }
 }
