@@ -16,6 +16,18 @@ typedef struct node {
 } node;
 
 /*
+ * Returns pointer to new uninitialised node.
+ */
+node* create_node() {
+  node* n = malloc(sizeof(node));
+  n->left = NULL;
+  n->right = NULL;
+  n->op = 0;
+  n->value = 0.0;
+  return n;
+}
+
+/*
  * Advance pos past all whitespace.
  *
  * Always returns 0, even at end of string.
@@ -92,28 +104,31 @@ int read_calc_input(node* root) {
   return 0;
 }
 
-double do_calc_command(node cmd) {
-  if (cmd.op == '+') {
-    return cmd.left->value + cmd.right->value;
-  } else if (cmd.op == '-') {
-    return cmd.left->value - cmd.right->value;
-  } else if (cmd.op == '*') {
-    return cmd.left->value * cmd.right->value;
-  } else if (cmd.op == '/') {
-    return cmd.left->value / cmd.right->value;
+double do_calc_command(node* cmd) {
+  if (cmd->op == '+') {
+    return cmd->left->value + cmd->right->value;
+  } else if (cmd->op == '-') {
+    return cmd->left->value - cmd->right->value;
+  } else if (cmd->op == '*') {
+    return cmd->left->value * cmd->right->value;
+  } else if (cmd->op == '/') {
+    return cmd->left->value / cmd->right->value;
   } else {
     return 0;
   }
 }
 
 int main(void) {
+  // REPL
   while (1) {
     node left = {0};
     node right = {0};
-    node root = {.left = &left, .right = &right};
+    node* root = create_node();
+    root->left = &left;
+    root->right = &right;
     do {
       printf("%s", "calc > ");
-    } while (read_calc_input(&root));
+    } while (read_calc_input(root));
 
     double result = do_calc_command(root);
     printf("%f\n", result);
