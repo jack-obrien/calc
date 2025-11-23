@@ -11,7 +11,7 @@
 typedef struct node {
   struct node* left; // children must be NULL if leaf node
   struct node* right;
-  char op;      // op value only meaningful if not leaf node
+  char op;      // op only meaningful if not leaf node
   double value; // value only meaningful if leaf node
 } node;
 
@@ -41,6 +41,20 @@ void free_node(node* root) {
   free(root);
 }
 
+void print_tree(node* node, int tablevel) {
+  for (int i = 0; i < tablevel; i++) {
+    printf("\t");
+  }
+  printf("TABLEVEL %i \t Node %c \t %f\n", tablevel, node->op, node->value);
+  printf("Left nodes:");
+  if (node->left != NULL) {
+    print_tree(node->left, tablevel + 1);
+  }
+  if (node->right != NULL) {
+    print_tree(node->right, tablevel + 1);
+  }
+}
+
 /*
  * Advance pos past all whitespace.
  *
@@ -48,11 +62,10 @@ void free_node(node* root) {
  * An end of string should raise an error in another parsing function if
  * applicable.
  */
-int parse_whitespace(char** pos) {
+void advance_past_whitespace(char** pos) {
   while (**pos == ' ') {
     (*pos)++;
   }
-  return 0;
 }
 
 /*
@@ -64,7 +77,8 @@ int parse_double(char** pos, double* double_result) {
   char* endptr;
   double parsed = strtod(*pos, &endptr);
 
-  // in case parsing fails, strtod will store string starting address in endptr
+  // in case parsing fails, strtod will store string starting address in
+  // endptr
   if (endptr == *pos) {
     return 1;
   }
@@ -72,6 +86,73 @@ int parse_double(char** pos, double* double_result) {
   *double_result = parsed;
   *pos = endptr;
   return 0;
+}
+
+/* Parse factor and return root of the factor tree.
+ * For now this is just a wrapper around parse_double which deals with the
+ * syntax tree structure. In future this function could call further language
+ * extensions like parse_power for the higher-precedence exponentiation
+ * operation, or parse_negation for the higher-precedence negation of a number
+ * (e.g. -5 )
+ */
+node* parse_factor(char** pos) {
+  node* leaf = create_node();
+  parse_double(pos, &leaf->value);
+  return leaf;
+}
+
+/* Parse term and return root of the term tree.
+ * This might contain other higher-precedence opertations too like
+ * multiplication or powers.
+ *
+ * formal definition:
+ *  term -> factor (('*' | '/') factor)
+ */
+node* parse_term(char** pos) {
+  node* current = parse_factor(pos);
+  advance_past_whitespace(pos);
+
+  while (**pos == '*' || **pos == '/') {
+    node* parent = create_node();
+
+    parent->op = **pos;
+    (*pos)++;
+    advance_past_whitespace(pos);
+
+    parent->right = parse_factor(pos);
+    advance_past_whitespace(pos);
+
+    parent->left = current;
+    current = parent;
+  }
+
+  return current;
+}
+
+/* Parse expression and return root of expression tree
+ *
+ * formal definition:
+ *  expr -> term (('+' | '-') term)*
+ */
+node* parse_expression(char** pos) {
+  node* current = parse_term(pos);
+  advance_past_whitespace(pos);
+
+  while (**pos == '+' || **pos == '-') {
+    node* parent = create_node();
+
+    parent->op = **pos;
+    (*pos)++;
+    advance_past_whitespace(pos);
+
+    parent->right = parse_term(pos);
+    advance_past_whitespace(pos);
+
+    parent->left = current;
+    current = parent;
+  }
+
+  return current;
 }
 
 int parse_operator(char** pos, char* operator_result) {
@@ -101,12 +182,10 @@ node* read_calc_input() {
   // error is a return code, any nonzero value will cause error after parsing.
   int error = 0;
 
-  error |= parse_whitespace(&pos);
-  error |= parse_double(&pos, &root->left->value);
-  error |= parse_whitespace(&pos);
-  error |= parse_operator(&pos, &root->op);
-  error |= parse_whitespace(&pos);
-  error |= parse_double(&pos, &root->right->value);
+  advance_past_whitespace(&pos);
+  root = parse_expression(&pos);
+  advance_past_whitespace(&pos);
+  error |= *pos != '\0'; // Ensure we have reached end of input string
 
   if (error) {
     printf("Parsing error\n");
@@ -138,6 +217,8 @@ int main(void) {
     do {
       printf("%s", "calc > ");
     } while ((root = read_calc_input()) == NULL);
+    print_tree(root, 0);
+    exit(1);  // debug
 
     double result = do_calc_command(root);
     printf("%f\n", result);
