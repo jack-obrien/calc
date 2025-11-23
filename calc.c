@@ -27,6 +27,20 @@ node* create_node() {
   return n;
 }
 
+/* Recursively free root
+ * Would love to do this iteratively using a morris traversal - O(1) memory,
+ * O(N) time, but i can't be assed. I'd love to eventually finish this project.
+ */
+void free_node(node* root) {
+  if (root->left != NULL) {
+    free_node(root->left);
+  }
+  if (root->right != NULL) {
+    free_node(root->right);
+  }
+  free(root);
+}
+
 /*
  * Advance pos past all whitespace.
  *
@@ -71,13 +85,11 @@ int parse_operator(char** pos, char* operator_result) {
 }
 
 /*
- * Read user input, parse it, and place the resulting node into cmd.
- * Return 0 in case of success, 1 in case of failure.
- *
- * Args:
- *  node* cmd: buffer to put result into.
+ * Read user input, parse it, and return the resulting node.
+ * Return NULL in case of failure.
  */
-int read_calc_input(node* root) {
+node* read_calc_input() {
+  node* root = create_node();
 
   // Read user input into a 256 byte buffer
   char expr[256];
@@ -98,10 +110,11 @@ int read_calc_input(node* root) {
 
   if (error) {
     printf("Parsing error\n");
-    return 1;
+    free_node(root);
+    return NULL;
   }
 
-  return 0;
+  return root;
 }
 
 double do_calc_command(node* cmd) {
@@ -121,16 +134,13 @@ double do_calc_command(node* cmd) {
 int main(void) {
   // REPL
   while (1) {
-    node left = {0};
-    node right = {0};
-    node* root = create_node();
-    root->left = &left;
-    root->right = &right;
+    node* root;
     do {
       printf("%s", "calc > ");
-    } while (read_calc_input(root));
+    } while ((root = read_calc_input()) == NULL);
 
     double result = do_calc_command(root);
     printf("%f\n", result);
+    free_node(root);
   }
 }
