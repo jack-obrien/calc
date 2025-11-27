@@ -45,12 +45,19 @@ void print_tree(node* node, int tablevel) {
   for (int i = 0; i < tablevel; i++) {
     printf("\t");
   }
-  printf("TABLEVEL %i \t Node %c \t %f\n", tablevel, node->op, node->value);
-  printf("Left nodes:");
+  printf("Node op: %c \t value: %f\n", node->op, node->value);
   if (node->left != NULL) {
+    for (int i = 0; i < tablevel; i++) {
+      printf("\t");
+    }
+    printf("Left nodes:\n");
     print_tree(node->left, tablevel + 1);
   }
   if (node->right != NULL) {
+    for (int i = 0; i < tablevel; i++) {
+      printf("\t");
+    }
+    printf("Right nodes:\n");
     print_tree(node->right, tablevel + 1);
   }
 }
@@ -63,7 +70,7 @@ void print_tree(node* node, int tablevel) {
  * applicable.
  */
 void advance_past_whitespace(char** pos) {
-  while (**pos == ' ') {
+  while (**pos == ' ' || **pos == '\n') {
     (*pos)++;
   }
 }
@@ -189,6 +196,7 @@ node* read_calc_input() {
 
   if (error) {
     printf("Parsing error\n");
+    print_tree(root, 0);
     free_node(root);
     return NULL;
   }
