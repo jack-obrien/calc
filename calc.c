@@ -1,7 +1,10 @@
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+char* bool_to_printable(bool b) { return b ? "true" : "false"; }
 
 /*
  * Operation for the calculator to do. Recursive structure to capture
@@ -14,6 +17,10 @@ typedef struct node {
   struct node* parent;
   char op;      // op only meaningful if not leaf node
   double value; // value only meaningful if leaf node
+
+  // set to true for non-leaf nodes who have evaluated op on children's values.
+  // set to true for leaf nodes
+  bool is_evaluated;
 } node;
 
 /*
@@ -26,6 +33,7 @@ node* create_node() {
   n->parent = NULL;
   n->op = 0;
   n->value = 0.0;
+  n->is_evaluated = false;
   return n;
 }
 
@@ -43,13 +51,24 @@ void free_node(node* root) {
   free(root);
 }
 
-void print_tree(node* node, int tablevel) {
-  for (int i = 0; i < tablevel; i++) {
+// print n tabs
+void print_tabs(uint8_t n) {
+  for (int i = 0; i < n; i++) {
     printf("\t");
   }
-  printf("Node at %p  parent: %p  op: %c  value: %f\n", (void*)node,
-         (void*)node->parent, node->op, node->value);
+}
 
+void print_tree(node* node, int tablevel) {
+  print_tabs(tablevel);
+  printf("Node at %p\n", (void*)node);
+  print_tabs(tablevel);
+  printf("parent: %p\n", (void*)(node->parent));
+  print_tabs(tablevel);
+  printf("op: %c\n", node->op);
+  print_tabs(tablevel);
+  printf("value: %f\n", node->value);
+  print_tabs(tablevel);
+  printf("is_evaluated: %s\n", bool_to_printable(node->is_evaluated));
   // Print children
   if (node->left != NULL) {
     for (int i = 0; i < tablevel; i++) {
@@ -110,6 +129,7 @@ int parse_double(char** pos, double* double_result) {
 node* parse_factor(char** pos) {
   node* leaf = create_node();
   parse_double(pos, &leaf->value);
+  leaf->is_evaluated = true;
   return leaf;
 }
 
@@ -213,31 +233,40 @@ node* read_calc_input() {
   return root;
 }
 
-double do_calc_command(node* cmd) {
-  if (cmd->op == '+') {
-    return cmd->left->value + cmd->right->value;
-  } else if (cmd->op == '-') {
-    return cmd->left->value - cmd->right->value;
-  } else if (cmd->op == '*') {
-    return cmd->left->value * cmd->right->value;
-  } else if (cmd->op == '/') {
-    return cmd->left->value / cmd->right->value;
+double eval_operation(char op, double left, double right) {
+  if (op == '+') {
+    return left + right;
+  } else if (op == '-') {
+    return left - right;
+  } else if (op == '*') {
+    return left * right;
+  } else if (op == '/') {
+    return left / right;
   } else {
     return 0;
   }
 }
 
-double eval_calculation(node* root) {
+double eval_calc_tree(node* root) {
   node* n = root;
-  do {
-    // if n->left
-    if (n->left->left != NULL) {
+  while (!(n->is_evaluated)) {
+    if (n->left == NULL || n->right == NULL) {
+      printf("Error - eval loop passed through leaf node");
+    } else if (!(n->left->is_evaluated)) {
       n = n->left;
-    }
-    if (n->right->left != NULL) {
+    } else if (!(n->right->is_evaluated)) {
       n = n->right;
+    } else {
+      printf("Eval node %c", n->op);
+      n->value = eval_operation(n->op, n->left->value, n->right->value);
+      n->is_evaluated = true;
+      n = n->parent;
     }
-  } while (n->parent != NULL);
+  }
+
+  if (n != root) {
+    printf("ERROR: eval loop exited on non-root.");
+  }
   return n->value;
 }
 
@@ -249,9 +278,9 @@ int main(void) {
       printf("%s", "calc > ");
     } while ((root = read_calc_input()) == NULL);
     print_tree(root, 0);
-    exit(1); // debug
+    printf("\n");
 
-    double result = do_calc_command(root);
+    double result = eval_calc_tree(root);
     printf("%f\n", result);
     free_node(root);
   }
