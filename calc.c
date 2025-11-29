@@ -11,6 +11,7 @@
 typedef struct node {
   struct node* left; // children must be NULL if leaf node
   struct node* right;
+  struct node* parent;
   char op;      // op only meaningful if not leaf node
   double value; // value only meaningful if leaf node
 } node;
@@ -22,6 +23,7 @@ node* create_node() {
   node* n = malloc(sizeof(node));
   n->left = NULL;
   n->right = NULL;
+  n->parent = NULL;
   n->op = 0;
   n->value = 0.0;
   return n;
@@ -46,6 +48,8 @@ void print_tree(node* node, int tablevel) {
     printf("\t");
   }
   printf("Node op: %c \t value: %f\n", node->op, node->value);
+
+  // Print children
   if (node->left != NULL) {
     for (int i = 0; i < tablevel; i++) {
       printf("\t");
@@ -127,9 +131,11 @@ node* parse_term(char** pos) {
     advance_past_whitespace(pos);
 
     parent->right = parse_factor(pos);
+    parent->right->parent = parent;
     advance_past_whitespace(pos);
 
     parent->left = current;
+    parent->left->parent = parent;
     current = parent;
   }
 
@@ -218,6 +224,20 @@ double do_calc_command(node* cmd) {
   }
 }
 
+double eval_calculation(node* root) {
+  node* n = root;
+  do {
+    if n->left
+    if (n->left->left != NULL) {
+      n = n->left;
+    }
+    if (n->right->left != NULL) {
+      n = n->right;
+    }
+  } while (n->parent != NULL)
+  return n->value;
+}
+
 int main(void) {
   // REPL
   while (1) {
@@ -226,7 +246,7 @@ int main(void) {
       printf("%s", "calc > ");
     } while ((root = read_calc_input()) == NULL);
     print_tree(root, 0);
-    exit(1);  // debug
+    exit(1); // debug
 
     double result = do_calc_command(root);
     printf("%f\n", result);
