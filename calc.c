@@ -47,7 +47,8 @@ void print_tree(node* node, int tablevel) {
   for (int i = 0; i < tablevel; i++) {
     printf("\t");
   }
-  printf("Node op: %c \t value: %f\n", node->op, node->value);
+  printf("Node at %p  parent: %p  op: %c  value: %f\n", (void*)node,
+         (void*)node->parent, node->op, node->value);
 
   // Print children
   if (node->left != NULL) {
@@ -159,9 +160,11 @@ node* parse_expression(char** pos) {
     advance_past_whitespace(pos);
 
     parent->right = parse_term(pos);
+    parent->right->parent = parent;
     advance_past_whitespace(pos);
 
     parent->left = current;
+    parent->left->parent = parent;
     current = parent;
   }
 
@@ -227,14 +230,14 @@ double do_calc_command(node* cmd) {
 double eval_calculation(node* root) {
   node* n = root;
   do {
-    if n->left
+    // if n->left
     if (n->left->left != NULL) {
       n = n->left;
     }
     if (n->right->left != NULL) {
       n = n->right;
     }
-  } while (n->parent != NULL)
+  } while (n->parent != NULL);
   return n->value;
 }
 
