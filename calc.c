@@ -257,10 +257,11 @@ double eval_calc_tree(node* root) {
     } else if (!(n->right->is_evaluated)) {
       n = n->right;
     } else {
-      printf("Eval node %c", n->op);
       n->value = eval_operation(n->op, n->left->value, n->right->value);
       n->is_evaluated = true;
-      n = n->parent;
+      if (n->parent != NULL) {
+        n = n->parent;
+      }
     }
   }
 
