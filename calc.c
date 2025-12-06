@@ -183,7 +183,8 @@ int parse_double(char** pos, double* double_result) {
  * (e.g. -5 )
  */
 node* parse_factor(char** pos) {
-  if (**pos == '(' || **pos == ')') return create_node();
+  if (**pos == '(' || **pos == ')')
+    return NULL;
   node* leaf = create_node();
   parse_double(pos, &leaf->value);
   leaf->is_evaluated = true;
@@ -198,7 +199,8 @@ node* parse_factor(char** pos) {
  *  term -> factor (('*' | '/') factor)
  */
 node* parse_term(char** pos) {
-  if (**pos == '(' || **pos == ')') return create_node();
+  if (**pos == '(' || **pos == ')')
+    return NULL;
   node* current = parse_factor(pos);
   advance_past_whitespace(pos);
 
@@ -227,7 +229,8 @@ node* parse_term(char** pos) {
  *  expr -> term (('+' | '-') term)*
  */
 node* parse_expression(char** pos) {
-  if (**pos == '(' || **pos == ')') return create_node();
+  if (**pos == '(' || **pos == ')')
+    return NULL;
   node* current = parse_term(pos);
   advance_past_whitespace(pos);
 
@@ -260,6 +263,26 @@ int parse_operator(char** pos, char* operator_result) {
   }
 }
 
+/* On seeing an open bracket, we need to push our latest subtree
+ * onto the context stack
+ */
+void handle_open_bracket(stack* s, node* latest_subtree) {
+  bracket_context* ctx = malloc(sizeof(bracket_context));
+
+  node* rightmost_child = latest_subtree;
+  while (rightmost_child->right != NULL) rightmost_child = rightmost_child->right;
+
+  *ctx = (bracket_context){.root = latest_subtree,
+                           .rightmost_child = rightmost_child};
+
+  stack_push(s, ctx);
+}
+
+void handle_close_bracket(stack* s, node* latest_subtree) {
+  bracket_context* ctx = stack_pop(s);
+  ctx->rightmost_child->right = latest_subtree;
+}
+
 /*
  * Read user input, parse it, and return the resulting node.
  * Return NULL in case of failure.
@@ -278,12 +301,19 @@ node* read_calc_input() {
   int error = 0;
 
   stack* bracket_context_stack = stack_init();
+  stack_push(bracket_context_stack, NULL);
 
   advance_past_whitespace(&pos);
   while (*pos != '\0') {
     node* n = parse_expression(&pos);
-    if (*pos == '(') handle_open_bracket(context_stack, n);
-    else if (*pos == ')') handle_close_bracket(context_stack, n);
+    if (*pos == '(') {
+      handle_open_bracket(bracket_context_stack, n);
+      pos++;
+    }
+    else if (*pos == ')') {
+      handle_close_bracket(bracket_context_stack, n);
+      pos++;
+    }
   }
   advance_past_whitespace(&pos);
   error |= *pos != '\0'; // Ensure we have reached end of input string
