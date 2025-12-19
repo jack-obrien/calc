@@ -23,6 +23,8 @@ typedef struct node {
   bool is_evaluated;
 } node;
 
+node* parse_expression(char** pos);
+
 /*
  * Returns pointer to new uninitialised node.
  */
@@ -128,6 +130,10 @@ int parse_double(char** pos, double* double_result) {
  */
 node* parse_factor(char** pos) {
   node* leaf = create_node();
+  if (**pos == '(') {
+    (*pos)++;
+    return parse_expression(pos);
+  }
   parse_double(pos, &leaf->value);
   leaf->is_evaluated = true;
   return leaf;
