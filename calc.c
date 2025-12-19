@@ -23,21 +23,6 @@ typedef struct node {
   bool is_evaluated;
 } node;
 
-typedef struct bracket_context {
-  node* root;
-  node* rightmost_child;
-} bracket_context;
-
-typedef struct linked_node {
-  struct linked_node* prev;
-  struct linked_node* next;
-  bracket_context* data;
-} linked_node;
-
-typedef struct stack {
-  linked_node* head;
-} stack;
-
 /*
  * Returns pointer to new uninitialised node.
  */
@@ -101,47 +86,6 @@ void print_tree(node* node, int tablevel) {
   }
 }
 
-//////// STACK DATA STRUCTURE UTILITIES
-linked_node* linked_node_init() {
-  linked_node* n = malloc(sizeof(linked_node));
-  n->prev = NULL;
-  n->next = NULL;
-  n->data = NULL;
-  return n;
-}
-
-stack* stack_init() {
-  linked_node* n = linked_node_init();
-  stack* s = malloc(sizeof(stack));
-  s->head = n;
-  return s;
-}
-
-bracket_context* stack_pop(stack* s) {
-  bracket_context* ctx = s->head->data;
-  s->head = s->head->prev;
-  free(s->head->next);
-  s->head->next = NULL;
-  return ctx;
-}
-
-void stack_push(stack* s, bracket_context* ctx) {
-  s->head->next = linked_node_init();
-  s->head->next->data = ctx;
-  s->head->next->prev = s->head;
-  s->head = s->head->next;
-}
-
-void stack_free(stack* s) {
-  linked_node* n = s->head;
-  do {
-    linked_node* prev = n->prev;
-    free(n);
-    n = prev;
-  } while (n != NULL);
-  free(s);
-}
-
 /*
  * Advance pos past all whitespace.
  *
@@ -183,8 +127,6 @@ int parse_double(char** pos, double* double_result) {
  * (e.g. -5 )
  */
 node* parse_factor(char** pos) {
-  if (**pos == '(' || **pos == ')')
-    return NULL;
   node* leaf = create_node();
   parse_double(pos, &leaf->value);
   leaf->is_evaluated = true;
@@ -199,8 +141,6 @@ node* parse_factor(char** pos) {
  *  term -> factor (('*' | '/') factor)
  */
 node* parse_term(char** pos) {
-  if (**pos == '(' || **pos == ')')
-    return NULL;
   node* current = parse_factor(pos);
   advance_past_whitespace(pos);
 
@@ -229,8 +169,6 @@ node* parse_term(char** pos) {
  *  expr -> term (('+' | '-') term)*
  */
 node* parse_expression(char** pos) {
-  if (**pos == '(' || **pos == ')')
-    return NULL;
   node* current = parse_term(pos);
   advance_past_whitespace(pos);
 
@@ -263,26 +201,6 @@ int parse_operator(char** pos, char* operator_result) {
   }
 }
 
-/* On seeing an open bracket, we need to push our latest subtree
- * onto the context stack
- */
-void handle_open_bracket(stack* s, node* latest_subtree) {
-  bracket_context* ctx = malloc(sizeof(bracket_context));
-
-  node* rightmost_child = latest_subtree;
-  while (rightmost_child->right != NULL) rightmost_child = rightmost_child->right;
-
-  *ctx = (bracket_context){.root = latest_subtree,
-                           .rightmost_child = rightmost_child};
-
-  stack_push(s, ctx);
-}
-
-void handle_close_bracket(stack* s, node* latest_subtree) {
-  bracket_context* ctx = stack_pop(s);
-  ctx->rightmost_child->right = latest_subtree;
-}
-
 /*
  * Read user input, parse it, and return the resulting node.
  * Return NULL in case of failure.
@@ -300,21 +218,8 @@ node* read_calc_input() {
   // error is a return code, any nonzero value will cause error after parsing.
   int error = 0;
 
-  stack* bracket_context_stack = stack_init();
-  stack_push(bracket_context_stack, NULL);
-
   advance_past_whitespace(&pos);
-  while (*pos != '\0') {
-    node* n = parse_expression(&pos);
-    if (*pos == '(') {
-      handle_open_bracket(bracket_context_stack, n);
-      pos++;
-    }
-    else if (*pos == ')') {
-      handle_close_bracket(bracket_context_stack, n);
-      pos++;
-    }
-  }
+  root = parse_expression(&pos);
   advance_past_whitespace(&pos);
   error |= *pos != '\0'; // Ensure we have reached end of input string
 
