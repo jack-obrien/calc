@@ -44,6 +44,10 @@ node* create_node() {
  * O(N) time, but i can't be assed. I'd love to eventually finish this project.
  */
 void free_node(node* root) {
+  if (root == NULL) {
+    return;
+  }
+
   if (root->left != NULL) {
     free_node(root->left);
   }
@@ -144,7 +148,9 @@ node* parse_factor(char** pos) {
     (*pos)++;
     return parse_expression(pos);
   }
-  parse_double(pos, &leaf->value);
+  if (parse_double(pos, &leaf->value) != 0) {
+    return NULL;
+  }
   leaf->is_evaluated = true;
   return leaf;
 }
@@ -168,6 +174,17 @@ node* parse_term(char** pos) {
     advance_past_whitespace(pos);
 
     parent->right = parse_factor(pos);
+
+    // Handle NULL error
+    if (parent->right == NULL) {
+      // Walk up tree and free from the root.
+      while (parent->parent != NULL) {
+        parent = parent->parent;
+      }
+      free_node(parent);
+      return NULL;
+    }
+
     parent->right->parent = parent;
     advance_past_whitespace(pos);
 
@@ -196,6 +213,16 @@ node* parse_expression(char** pos) {
     advance_past_whitespace(pos);
 
     parent->right = parse_term(pos);
+
+    if (parent->right == NULL) {
+      // Walk up tree and free from the root.
+      while (parent->parent != NULL) {
+        parent = parent->parent;
+      }
+      free_node(parent);
+      return NULL;
+    }
+
     parent->right->parent = parent;
     advance_past_whitespace(pos);
 
