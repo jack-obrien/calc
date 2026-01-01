@@ -121,6 +121,16 @@ int parse_double(char** pos, double* double_result) {
   return 0;
 }
 
+int parse_operator(char** pos, char* operator_result) {
+  if (**pos == '+' || **pos == '-' || **pos == '*' || **pos == '/') {
+    *operator_result = **pos;
+    (*pos)++;
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
 /* Parse factor and return root of the factor tree.
  * For now this is just a wrapper around parse_double which deals with the
  * syntax tree structure. In future this function could call further language
@@ -194,17 +204,12 @@ node* parse_expression(char** pos) {
     current = parent;
   }
 
-  return current;
-}
-
-int parse_operator(char** pos, char* operator_result) {
-  if (**pos == '+' || **pos == '-' || **pos == '*' || **pos == '/') {
-    *operator_result = **pos;
+  if (**pos == ')') {
     (*pos)++;
-    return 0;
-  } else {
-    return 1;
+    advance_past_whitespace(pos);
   }
+
+  return current;
 }
 
 /*
@@ -231,7 +236,7 @@ node* read_calc_input() {
 
   if (error) {
     printf("Parsing error\n");
-    print_tree(root, 0);
+    //print_tree(root, 0);
     free_node(root);
     return NULL;
   }
@@ -284,7 +289,7 @@ int main(void) {
     do {
       printf("%s", "calc > ");
     } while ((root = read_calc_input()) == NULL);
-    print_tree(root, 0);
+    //print_tree(root, 0);
     printf("\n");
 
     double result = eval_calc_tree(root);
