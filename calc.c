@@ -57,6 +57,14 @@ void free_node(node* root) {
   free(root);
 }
 
+// Walk up and free entire tree containing node.
+void walk_up_and_free_node(node* n) {
+  while (n->parent != NULL) {
+   n = n->parent;
+  }
+  free_node(n);
+}
+
 // print n tabs
 void print_tabs(uint8_t n) {
   for (int i = 0; i < n; i++) {
@@ -164,6 +172,10 @@ node* parse_factor(char** pos) {
  */
 node* parse_term(char** pos) {
   node* current = parse_factor(pos);
+  if (current == NULL) {
+    return NULL;
+  }
+
   advance_past_whitespace(pos);
 
   while (**pos == '*' || **pos == '/') {
@@ -177,11 +189,7 @@ node* parse_term(char** pos) {
 
     // Handle NULL error
     if (parent->right == NULL) {
-      // Walk up tree and free from the root.
-      while (parent->parent != NULL) {
-        parent = parent->parent;
-      }
-      free_node(parent);
+      walk_up_and_free_node(parent);
       return NULL;
     }
 
@@ -203,6 +211,10 @@ node* parse_term(char** pos) {
  */
 node* parse_expression(char** pos) {
   node* current = parse_term(pos);
+  if (current == NULL) {
+    return NULL;
+  }
+
   advance_past_whitespace(pos);
 
   while (**pos == '+' || **pos == '-') {
@@ -215,11 +227,7 @@ node* parse_expression(char** pos) {
     parent->right = parse_term(pos);
 
     if (parent->right == NULL) {
-      // Walk up tree and free from the root.
-      while (parent->parent != NULL) {
-        parent = parent->parent;
-      }
-      free_node(parent);
+      walk_up_and_free_node(parent);
       return NULL;
     }
 
@@ -257,11 +265,11 @@ node* read_calc_input() {
   root = parse_expression(&pos);
   advance_past_whitespace(&pos);
 
-  // Simple error handling. In case of a bad character, the parse_expression function
-  // will return without consuming the entire input string.
+  // Simple error handling. In case of a bad character, the parse_expression
+  // function will return without consuming the entire input string.
   if (*pos != '\0') {
     printf("Parsing error at character %c\n", *pos);
-    //print_tree(root, 0);
+    // print_tree(root, 0);
     free_node(root);
     return NULL;
   }
