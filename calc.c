@@ -226,16 +226,14 @@ node* read_calc_input() {
   // Here we use pointer-to-pointer to track our progress parsing expr.
   char* pos = expr;
 
-  // error is a return code, any nonzero value will cause error after parsing.
-  int error = 0;
-
   advance_past_whitespace(&pos);
   root = parse_expression(&pos);
   advance_past_whitespace(&pos);
-  error |= *pos != '\0'; // Ensure we have reached end of input string
 
-  if (error) {
-    printf("Parsing error\n");
+  // Simple error handling. In case of a bad character, the parse_expression function
+  // will return without consuming the entire input string.
+  if (*pos != '\0') {
+    printf("Parsing error at character %c\n", *pos);
     //print_tree(root, 0);
     free_node(root);
     return NULL;
@@ -289,7 +287,6 @@ int main(void) {
     do {
       printf("%s", "calc > ");
     } while ((root = read_calc_input()) == NULL);
-    //print_tree(root, 0);
     printf("\n");
 
     double result = eval_calc_tree(root);
